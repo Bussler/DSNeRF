@@ -46,6 +46,7 @@ def batchify(fn, chunk):
     return ret
 
 
+# M: inputs are embedded with Positional encoding and then used on the NeRF NW in batchify
 def run_network(inputs, viewdirs, fn, embed_fn, embeddirs_fn, netchunk=1024*64):
     """Prepares inputs and applies network 'fn'.
     """
@@ -224,7 +225,7 @@ def render_test_ray(rays_o, rays_d, hwf, ndc, near, far, use_viewdirs, N_samples
 
     return rgb, sigma, z_vals, depth_maps, weights
 
-
+# M: Return model, embedder funct for input in dict "render_kwargs_train" and "render_kwargs_test" for use in train function
 def create_nerf(args):
     """Instantiate NeRF's MLP model.
     """
@@ -339,6 +340,8 @@ def create_nerf(args):
     return render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer
 
 
+# M: Uses the network defined in prev dict and embedding funct to generate rgb o values and render the ray_batch
+# M: TODO Here the volume rendering takes place, can we speed this up with e.g. sphere tracing?
 def render_rays(ray_batch,
                 network_fn,
                 network_query_fn,

@@ -18,6 +18,8 @@ to8b = lambda x : (255*np.clip(x,0,1)).astype(np.uint8)
 
 
 # Positional encoding (section 5.1)
+# M: Authors try to cover high frequency domains by mapping input to higher freq. domain before passing into NW.
+# M: Possible that SIRENS is useless then, since they try to also leverage the high freq signals and the problem is already solved here
 class Embedder:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
@@ -82,9 +84,11 @@ class NeRF(nn.Module):
         self.skips = skips
         self.use_viewdirs = use_viewdirs
         
+        # M: 8 first input linear layers for 3D position x to predict volume density
         self.pts_linears = nn.ModuleList(
             [nn.Linear(input_ch, W)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
         
+        # M: last linear layer for output of prev 3D position (vol density) and view dir to predict view-dependent color
         ### Implementation according to the official code release (https://github.com/bmild/nerf/blob/master/run_nerf_helpers.py#L104-L105)
         self.views_linears = nn.ModuleList([nn.Linear(input_ch_views + W, W//2)])
 
@@ -92,6 +96,8 @@ class NeRF(nn.Module):
         # self.views_linears = nn.ModuleList(
         #     [nn.Linear(input_ch_views + W, W//2)] + [nn.Linear(W//2, W//2) for i in range(D//2)])
         
+        # M: Final output layers to generate rgb a values in needed dimensions from prev layers
+
         if use_viewdirs:
             self.feature_linear = nn.Linear(W, W)
             self.alpha_linear = nn.Linear(W, 1)
@@ -104,6 +110,7 @@ class NeRF(nn.Module):
         h = input_pts
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)
+            # M: TODO Here we could use other activation functions
             h = F.relu(h)
             if i in self.skips:
                 h = torch.cat([input_pts, h], -1)
@@ -115,6 +122,7 @@ class NeRF(nn.Module):
         
             for i, l in enumerate(self.views_linears):
                 h = self.views_linears[i](h)
+                # M: TODO Here we could use other activation functions
                 h = F.relu(h)
 
             rgb = self.rgb_linear(h)

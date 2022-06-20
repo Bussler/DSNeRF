@@ -144,3 +144,7 @@ scripts
 web
 *.pyc
 .vscode
+
+data/
+data/
+logs/
