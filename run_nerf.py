@@ -634,6 +634,7 @@ def train():
 
     if args.dataset_type == 'llff':
         if args.colmap_depth:
+            # M: get depth info for additional Loss in depth supervised NeRF TODO look into what is in depth_gts exactly
             depth_gts = load_colmap_depth(args.datadir, factor=args.factor, bd_factor=.75)
         images, poses, bds, render_poses, i_test = load_llff_data(args.datadir, args.factor,
                                                                   recenter=True, bd_factor=.75,
@@ -814,6 +815,7 @@ def train():
             print('get depth rays')
             rays_depth_list = []
             for i in i_train:
+                # M: generate depth from rays -> Is then used for calculating the ground truth for loss of depth predicted by NW
                 rays_depth = np.stack(get_rays_by_coord_np(H, W, focal, poses[i,:3,:4], depth_gts[i]['coord']), axis=0) # 2 x N x 3
                 # print(rays_depth.shape)
                 rays_depth = np.transpose(rays_depth, [1,0,2])
@@ -871,6 +873,7 @@ def train():
                 raysRGB_iter = iter(DataLoader(RayDataset(rays_rgb), batch_size = N_rgb, shuffle=True, num_workers=0))
                 batch = next(raysRGB_iter).to(device)
             batch = torch.transpose(batch, 0, 1)
+            # M: get target color in target_s
             batch_rays, target_s = batch[:2], batch[2]
 
             if args.colmap_depth:
@@ -880,6 +883,7 @@ def train():
                 except StopIteration:
                     raysDepth_iter = iter(DataLoader(RayDataset(rays_depth), batch_size = N_depth, shuffle=True, num_workers=0))
                     batch_depth = next(raysDepth_iter).to(device)
+                # M: get target depth in target_depth
                 batch_depth = torch.transpose(batch_depth, 0, 1)
                 batch_rays_depth = batch_depth[:2] # 2 x B x 3
                 target_depth = batch_depth[2,:,0] # B
@@ -935,7 +939,7 @@ def train():
 
         # timer_concate = time.perf_counter()
 
-
+        # M: get the predicted rgb, depth values etc
         rgb, disp, acc, depth, extras = render(H, W, focal, chunk=args.chunk, rays=batch_rays,
                                                 verbose=i < 10, retraw=True,
                                                 **render_kwargs_train)
@@ -958,10 +962,12 @@ def train():
         # timer_split = time.perf_counter()
 
         optimizer.zero_grad()
+        # M: color loss calculation
         img_loss = img2mse(rgb, target_s)
         depth_loss = 0
         if args.depth_loss:
             # depth_loss = img2mse(depth_col, target_depth)
+            # M: depth loss calculation
             if args.weighted_loss:
                 if not args.normalize_depth:
                     depth_loss = torch.mean(((depth_col - target_depth) ** 2) * ray_weights)
