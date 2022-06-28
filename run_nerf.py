@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 
 from run_nerf_helpers import *
 
+from SirenDsnerf import SIRENNeRF
+
 from load_llff import load_llff_data, load_colmap_depth
 from load_dtu import load_dtu_data
 
@@ -229,21 +231,32 @@ def render_test_ray(rays_o, rays_d, hwf, ndc, near, far, use_viewdirs, N_samples
 def create_nerf(args):
     """Instantiate NeRF's MLP model.
     """
-    embed_fn, input_ch = get_embedder(args.multires, args.i_embed)
+    embed_fn, input_ch = get_embedder(args.multires, args.i_embed, use_SIREN=args.use_SIREN)
 
     input_ch_views = 0
     embeddirs_fn = None
     if args.use_viewdirs:
-        embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed)
+        embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed, use_SIREN=args.use_SIREN)
     output_ch = 5 if args.N_importance > 0 else 4
     skips = [4]
     if args.alpha_model_path is None:
-        model = NeRF(D=args.netdepth, W=args.netwidth,
+        # M: initialize the model: normal NeRF or SirenDsnerf
+        if args.use_SIREN:
+            model = SIRENNeRF(D=args.netdepth, W=args.netwidth,
+                    input_ch=input_ch, output_ch=output_ch, skips=skips,
+                    input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+        else:
+            model = NeRF(D=args.netdepth, W=args.netwidth,
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
                     input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         grad_vars = list(model.parameters())
     else:
-        alpha_model = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
+        if args.use_SIREN:
+            alpha_model = SIRENNeRF(D=args.netdepth_fine, W=args.netwidth_fine,
+                            input_ch=input_ch, output_ch=output_ch, skips=skips,
+                            input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+        else:
+            alpha_model = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         print('Alpha model reloading from', args.alpha_model_path)
@@ -262,7 +275,12 @@ def create_nerf(args):
     model_fine = None
     if args.N_importance > 0:
         if args.alpha_model_path is None:
-            model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
+            if args.use_SIREN:
+                model_fine = SIRENNeRF(D=args.netdepth_fine, W=args.netwidth_fine,
+                            input_ch=input_ch, output_ch=output_ch, skips=skips,
+                            input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+            else:
+                model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         else:
@@ -623,6 +641,10 @@ def config_parser():
                     help="normalize depth before calculating loss")
     parser.add_argument("--depth_rays_prop", type=float, default=0.5,
                         help="Proportion of depth rays.")
+
+    # M: use SIREN with DSNeRF
+    parser.add_argument("--use_SIREN", action='store_true', 
+                        help='Use SIREN periodic activation functions instead of embedder to capture high frequency signals')
     return parser
 
 

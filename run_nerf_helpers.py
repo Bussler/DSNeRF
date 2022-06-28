@@ -53,18 +53,29 @@ class Embedder:
         return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
 
 
-def get_embedder(multires, i=0):
+def get_embedder(multires, i=0, use_SIREN = False):
     if i == -1:
         return nn.Identity(), 3
     
-    embed_kwargs = {
+    # M: in case we use SIREN, we don't concat the input with fourier matrix, but instead just give back the input
+    if use_SIREN: 
+        embed_kwargs = {
+                'include_input' : True,
+                'input_dims' : 3,
+                'max_freq_log2' : multires-1,
+                'num_freqs' : multires,
+                'log_sampling' : False,
+                'periodic_fns' : [],
+        }
+    else:
+        embed_kwargs = {
                 'include_input' : True,
                 'input_dims' : 3,
                 'max_freq_log2' : multires-1,
                 'num_freqs' : multires,
                 'log_sampling' : True,
                 'periodic_fns' : [torch.sin, torch.cos],
-    }
+        }
     
     embedder_obj = Embedder(**embed_kwargs)
     embed = lambda x, eo=embedder_obj : eo.embed(x)
