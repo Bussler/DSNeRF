@@ -36,10 +36,13 @@ class Embedder:
         max_freq = self.kwargs['max_freq_log2']
         N_freqs = self.kwargs['num_freqs']
         
-        if self.kwargs['log_sampling']:
-            freq_bands = 2.**torch.linspace(0., max_freq, steps=N_freqs)
+        if self.kwargs['custom_embedding']:
+            freq_bands = 2**torch.linspace(0, N_freqs-1, 64) # M: taken from https://github.com/kwea123/nerf_pl/issues/24
         else:
-            freq_bands = torch.linspace(2.**0., 2.**max_freq, steps=N_freqs)
+            if self.kwargs['log_sampling']:
+                freq_bands = 2.**torch.linspace(0., max_freq, steps=N_freqs)
+            else:
+                freq_bands = torch.linspace(2.**0., 2.**max_freq, steps=N_freqs)
             
         for freq in freq_bands:
             for p_fn in self.kwargs['periodic_fns']:
@@ -53,28 +56,20 @@ class Embedder:
         return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
 
 
-def get_embedder(multires, i=0, use_SIREN = False):
-    if i == -1:
-        return nn.Identity(), 3
+def get_embedder(multires, i=0, use_SIREN = False, customEmbedding = False):
     
     # M: in case we use SIREN, we don't concat the input with fourier matrix, but instead just give back the input
-    if use_SIREN: 
-        embed_kwargs = {
-                'include_input' : True,
-                'input_dims' : 3,
-                'max_freq_log2' : multires-1,
-                'num_freqs' : multires,
-                'log_sampling' : False,
-                'periodic_fns' : [],
-        }
-    else:
-        embed_kwargs = {
+    if i == -1: # or use_SIREN:
+        return nn.Identity(), 3
+    
+    embed_kwargs = {
                 'include_input' : True,
                 'input_dims' : 3,
                 'max_freq_log2' : multires-1,
                 'num_freqs' : multires,
                 'log_sampling' : True,
                 'periodic_fns' : [torch.sin, torch.cos],
+                'custom_embedding' : customEmbedding,
         }
     
     embedder_obj = Embedder(**embed_kwargs)

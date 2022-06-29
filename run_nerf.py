@@ -231,12 +231,12 @@ def render_test_ray(rays_o, rays_d, hwf, ndc, near, far, use_viewdirs, N_samples
 def create_nerf(args):
     """Instantiate NeRF's MLP model.
     """
-    embed_fn, input_ch = get_embedder(args.multires, args.i_embed, use_SIREN=args.use_SIREN)
+    embed_fn, input_ch = get_embedder(args.multires, args.i_embed, use_SIREN=args.use_SIREN, customEmbedding=args.custom_embedding)
 
     input_ch_views = 0
     embeddirs_fn = None
     if args.use_viewdirs:
-        embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed, use_SIREN=args.use_SIREN)
+        embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed, use_SIREN=args.use_SIREN, customEmbedding=args.custom_embedding)
     output_ch = 5 if args.N_importance > 0 else 4
     skips = [4]
     if args.alpha_model_path is None:
@@ -642,9 +642,11 @@ def config_parser():
     parser.add_argument("--depth_rays_prop", type=float, default=0.5,
                         help="Proportion of depth rays.")
 
-    # M: use SIREN with DSNeRF
+    # M: use SIREN with DSNeRF or other embeddings
     parser.add_argument("--use_SIREN", action='store_true', 
                         help='Use SIREN periodic activation functions instead of embedder to capture high frequency signals')
+    parser.add_argument("--custom_embedding", action='store_true', 
+                        help='Use custom embedding for embedding data to higher freq space')
     return parser
 
 
