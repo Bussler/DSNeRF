@@ -236,7 +236,7 @@ def create_nerf(args):
     B = None
     if args.gauss_embedding:
         # multires x 3
-        mappingSize=100 #args.multires
+        mappingSize=args.multires
         B = np.random.normal(size=(mappingSize, 3))
         B = torch.from_numpy(B).float().to(device)
         # TODO scale gauss mapping?

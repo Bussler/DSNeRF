@@ -1,4 +1,4 @@
-expname = fern_gaussEmbedding1With100
+expname = fern_gaussEmbedding1With64
 basedir = ./logs
 datadir = ./data/fern_2view
 dataset_type = llff
@@ -29,3 +29,4 @@ depth_loss = True
 depth_lambda = 0.1
 
 gauss_embedding
+multires = 64
