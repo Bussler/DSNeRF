@@ -1,4 +1,4 @@
-expname = fern_2vSirenDsnerf
+expname = fern_2vTest
 basedir = ./logs
 datadir = ./data/fern_2view
 dataset_type = llff
@@ -17,9 +17,9 @@ netchunk = 16384
 netdepth = 4
 
 i_testset = 1000
-i_video = 3000
-N_iters = 3000
-i_weights = 3000
+i_video = 1000
+N_iters = 1000
+i_weights = 1000
 
 train_scene = [0, 1]
 test_scene = [-1]
@@ -27,5 +27,3 @@ no_ndc = True
 colmap_depth = True
 depth_loss = True
 depth_lambda = 0.1
-
-use_SIREN

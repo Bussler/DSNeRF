@@ -35,6 +35,8 @@ class Embedder:
             
         max_freq = self.kwargs['max_freq_log2']
         N_freqs = self.kwargs['num_freqs']
+
+        self.B = self.kwargs['gauss_embedding']
         
         if self.kwargs['custom_embedding']:
             freq_bands = 2**torch.linspace(0, N_freqs-1, 64) # M: taken from https://github.com/kwea123/nerf_pl/issues/24
@@ -48,15 +50,23 @@ class Embedder:
             for p_fn in self.kwargs['periodic_fns']:
                 embed_fns.append(lambda x, p_fn=p_fn, freq=freq : p_fn(x * freq))
                 out_dim += d
+
+        if self.B is not None:
+            out_dim = self.B.size(0)*2
                     
         self.embed_fns = embed_fns
         self.out_dim = out_dim
         
     def embed(self, inputs):
-        return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
+        if self.B is None: # PE or custom embedding
+            return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
+        else: # Gaussian embedding
+            x_proj = (2.*np.pi*inputs) @ self.B.T
+            return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], axis=-1)
 
 
-def get_embedder(multires, i=0, use_SIREN = False, customEmbedding = False):
+
+def get_embedder(multires, i=0, use_SIREN = False, customEmbedding = False, gaussEmbedding = None):
     
     # M: in case we use SIREN, we don't concat the input with fourier matrix, but instead just give back the input
     if i == -1: # or use_SIREN:
@@ -70,6 +80,7 @@ def get_embedder(multires, i=0, use_SIREN = False, customEmbedding = False):
                 'log_sampling' : True,
                 'periodic_fns' : [torch.sin, torch.cos],
                 'custom_embedding' : customEmbedding,
+                'gauss_embedding' : gaussEmbedding,
         }
     
     embedder_obj = Embedder(**embed_kwargs)
