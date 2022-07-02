@@ -232,7 +232,7 @@ def create_nerf(args):
     """Instantiate NeRF's MLP model.
     """
 
-    # create gauss random sampled matrix
+    # M: create gauss random sampled matrix
     B = None
     if args.gauss_embedding:
         # multires x 3
@@ -667,6 +667,7 @@ def train():
     parser = config_parser()
     args = parser.parse_args()
 
+    writer = SummaryWriter('runs/'+args.expname)
 
     if args.dataset_type == 'llff':
         if args.colmap_depth:
@@ -1105,7 +1106,13 @@ def train():
             test_loss = img2mse(torch.Tensor(rgbs), images[i_test])
             test_psnr = mse2psnr(test_loss)
 
+            # M: Tensorboard logging
+            writer.add_scalar('PSNR/test', test_psnr.item(), i)
+
     
+        # M: Tensorboard logging
+        writer.add_scalar('PSNR/train', psnr.item(), i)
+
         if i%args.i_print==0:
             tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")
         """
