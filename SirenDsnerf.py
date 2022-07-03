@@ -132,3 +132,65 @@ class SIRENNeRF(nn.Module):
         idx_alpha_linear = 2 * self.D + 6
         self.alpha_linear.weight.data = torch.from_numpy(np.transpose(weights[idx_alpha_linear]))
         self.alpha_linear.bias.data = torch.from_numpy(np.transpose(weights[idx_alpha_linear+1]))
+
+
+
+# Model
+class SIRENNeRF2(nn.Module):
+    def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False, omega_0 = 30):
+        """ 
+        """
+        super(SIRENNeRF2, self).__init__()
+        self.D = D
+        self.W = W
+        self.input_ch = input_ch
+        self.input_ch_views = input_ch_views
+        self.skips = skips
+        self.use_viewdirs = use_viewdirs
+        
+        # M: 8 first input linear layers for 3D position x to predict volume density
+        # M: Here, we intitialize them as SIREN Sine layers
+        self.linearSigma = nn.ModuleList(
+            [SineLayer(input_ch, W, is_first=True)] + [SineLayer(W, W) if i not in self.skips else SineLayer(W + input_ch, W) for i in range(D-1)])
+
+        self.outputSigma = nn.Linear(W, 1)
+        
+        # M: last linear layer for output of prev 3D position (vol density) and view dir to predict view-dependent color
+        # M: Here, we intitialize them as SIREN Sine layers
+        ### Implementation according to the official code release (https://github.com/bmild/nerf/blob/master/run_nerf_helpers.py#L104-L105)
+        self.linearRGB = nn.ModuleList(
+            [SineLayer(input_ch, W, is_first=True)] + [SineLayer(W, W) if i not in self.skips else SineLayer(W + input_ch, W) for i in range(D-1)])
+
+        self.intermediateRGB = nn.Linear(W, W)
+        self.intermediateRGBSIREN = SineLayer(W, W)
+        self.outputRGB = nn.Linear(W, 3)
+
+
+    # Only xyz are used here
+    def forward(self, x):
+        input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
+       
+        # sigma
+        h = input_pts
+        for i, l in enumerate(self.linearSigma):
+            h = self.linearSigma[i](h)
+            if i in self.skips:
+                h = torch.cat([input_pts, h], -1)
+
+        sigma = F.relu(self.outputSigma(h))
+
+        # rgb
+        h = input_pts
+        for i, l in enumerate(self.linearRGB):
+            h = self.linearRGB[i](h)
+            if i in self.skips:
+                h = torch.cat([input_pts, h], -1)
+
+        h = self.intermediateRGB(h)
+        h = self.intermediateRGBSIREN(h)
+
+        rgb = F.sigmoid(self.outputRGB(h))
+
+        outputs = torch.cat([rgb, sigma], -1)
+
+        return outputs    
