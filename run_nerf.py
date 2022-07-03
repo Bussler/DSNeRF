@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from run_nerf_helpers import *
 
-from SirenDsnerf import SIRENNeRF
+from SirenDsnerf import SIRENNeRF, SIRENNeRF2
 
 from load_llff import load_llff_data, load_colmap_depth
 from load_dtu import load_dtu_data
@@ -1113,10 +1113,12 @@ def train():
 
             # M: Tensorboard logging
             writer.add_scalar('PSNR/test', test_psnr.item(), i)
+            writer.add_scalar('Loss/test', test_loss.item(), i)
 
     
         # M: Tensorboard logging
         writer.add_scalar('PSNR/train', psnr.item(), i)
+        writer.add_scalar('Loss/train', loss.item(), i)
 
         if i%args.i_print==0:
             tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")
