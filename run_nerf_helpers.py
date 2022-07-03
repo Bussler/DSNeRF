@@ -39,7 +39,8 @@ class Embedder:
         self.B = self.kwargs['gauss_embedding']
         
         if self.kwargs['custom_embedding']:
-            freq_bands = 2**torch.linspace(0, N_freqs-1, 64) # M: taken from https://github.com/kwea123/nerf_pl/issues/24
+            # M: take current linspace and take more points
+            freq_bands = 2**torch.linspace(0, max_freq, 64) # M: taken from https://github.com/kwea123/nerf_pl/issues/24
         else:
             if self.kwargs['log_sampling']:
                 freq_bands = 2.**torch.linspace(0., max_freq, steps=N_freqs)
@@ -52,7 +53,7 @@ class Embedder:
                 out_dim += d
 
         if self.B is not None:
-            out_dim = self.B.size(0)*2
+            out_dim = (self.B.size(0)*2) + 3
                     
         self.embed_fns = embed_fns
         self.out_dim = out_dim
@@ -62,7 +63,7 @@ class Embedder:
             return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
         else: # Gaussian embedding
             x_proj = (2.*np.pi*inputs) @ self.B.T
-            return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], axis=-1)
+            return torch.cat([inputs, torch.sin(x_proj), torch.cos(x_proj)], axis=-1)
 
 
 
