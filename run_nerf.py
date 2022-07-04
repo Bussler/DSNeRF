@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from run_nerf_helpers import *
 
-from SirenDsnerf import SIRENNeRF, SIRENNeRF2
+from SirenDsnerf import SIRENNeRF, SIRENNeRF2, SINONE
 
 from load_llff import load_llff_data, load_colmap_depth
 from load_dtu import load_dtu_data
@@ -241,18 +241,24 @@ def create_nerf(args):
         B = torch.from_numpy(B).float().to(device)
         # TODO scale gauss mapping?
 
-    embed_fn, input_ch = get_embedder(args.multires, args.i_embed, use_SIREN=args.use_SIREN, customEmbedding=args.custom_embedding, gaussEmbedding=B)
+    useIdentity = args.use_SIREN or args.use_SINONE
+
+    embed_fn, input_ch = get_embedder(args.multires, args.i_embed, use_Identity=useIdentity, customEmbedding=args.custom_embedding, gaussEmbedding=B)
 
     input_ch_views = 0
     embeddirs_fn = None
     if args.use_viewdirs:
-        embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed, use_SIREN=args.use_SIREN, customEmbedding=args.custom_embedding, gaussEmbedding=B)
+        embeddirs_fn, input_ch_views = get_embedder(args.multires_views, args.i_embed, use_Identity=useIdentity, customEmbedding=args.custom_embedding, gaussEmbedding=B)
     output_ch = 5 if args.N_importance > 0 else 4
     skips = [4]
     if args.alpha_model_path is None:
         # M: initialize the model: normal NeRF or SirenDsnerf
         if args.use_SIREN:
-            model = SIRENNeRF(D=args.netdepth, W=args.netwidth,
+            model = SIRENNeRF2(D=args.netdepth, W=args.netwidth,
+                    input_ch=input_ch, output_ch=output_ch, skips=skips,
+                    input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+        elif args.use_SINONE:
+            model = SINONE(D=args.netdepth, W=args.netwidth,
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
                     input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         else:
@@ -262,7 +268,11 @@ def create_nerf(args):
         grad_vars = list(model.parameters())
     else:
         if args.use_SIREN:
-            alpha_model = SIRENNeRF(D=args.netdepth_fine, W=args.netwidth_fine,
+            alpha_model = SIRENNeRF2(D=args.netdepth_fine, W=args.netwidth_fine,
+                            input_ch=input_ch, output_ch=output_ch, skips=skips,
+                            input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+        elif args.use_SINONE:
+            alpha_model = SINONE(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         else:
@@ -286,9 +296,13 @@ def create_nerf(args):
     if args.N_importance > 0:
         if args.alpha_model_path is None:
             if args.use_SIREN:
-                model_fine = SIRENNeRF(D=args.netdepth_fine, W=args.netwidth_fine,
+                model_fine = SIRENNeRF2(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+            elif args.use_SINONE:
+                model_fine = SINONE(D=args.netdepth, W=args.netwidth,
+                        input_ch=input_ch, output_ch=output_ch, skips=skips,
+                        input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
             else:
                 model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
@@ -655,6 +669,8 @@ def config_parser():
     # M: use SIREN with DSNeRF or other embeddings
     parser.add_argument("--use_SIREN", action='store_true', 
                         help='Use SIREN periodic activation functions instead of embedder to capture high frequency signals')
+    parser.add_argument("--use_SINONE", action='store_true', 
+                        help='Use SIREN periodic activation functions in first linear layer to capture high frequency signals')
     parser.add_argument("--custom_embedding", action='store_true', 
                         help='Use custom embedding for embedding data to higher freq space')
     parser.add_argument("--gauss_embedding", action='store_true', 

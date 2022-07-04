@@ -42,6 +42,7 @@ class SineLayer(nn.Module):
     
 
 # Model
+# M: replace all the linear layers of NeRF with SinLayers
 class SIRENNeRF(nn.Module):
     def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False, omega_0 = 30):
         """ 
@@ -134,13 +135,149 @@ class SIRENNeRF(nn.Module):
         self.alpha_linear.bias.data = torch.from_numpy(np.transpose(weights[idx_alpha_linear+1]))
 
 
-
 # Model
+# M: replace first layer with Sin Layer
 class SIRENNeRF2(nn.Module):
     def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False, omega_0 = 30):
         """ 
         """
         super(SIRENNeRF2, self).__init__()
+        self.D = D
+        self.W = W
+        self.input_ch = input_ch
+        self.input_ch_views = input_ch_views
+        self.skips = skips
+        self.use_viewdirs = use_viewdirs
+        
+        # M: 8 first input linear layers for 3D position x to predict volume density
+        # M: Here, we intitialize the first as SIREN Sine layers
+        self.pts_linears = nn.ModuleList(
+            [SineLayer(input_ch, W, is_first=False)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
+        
+        # M: last linear layer for output of prev 3D position (vol density) and view dir to predict view-dependent color
+        # M: Here, we put the input of the views through a SineLayer first
+        ### Implementation according to the official code release (https://github.com/bmild/nerf/blob/master/run_nerf_helpers.py#L104-L105)
+
+        self.views_SineLayer = SineLayer(input_ch_views, W, is_first=False)
+
+        self.views_linears = nn.ModuleList([nn.Linear(W + W, W//2)]) #nn.ModuleList([nn.Linear(input_ch_views + W, W//2)])
+
+
+        ### Implementation according to the paper
+        # self.views_linears = nn.ModuleList(
+        #     [nn.Linear(input_ch_views + W, W//2)] + [nn.Linear(W//2, W//2) for i in range(D//2)])
+        
+        # M: Final output layers to generate rgb a values in needed dimensions from prev layers
+
+        if use_viewdirs:
+            self.feature_linear = nn.Linear(W, W)
+            self.alpha_linear = nn.Linear(W, 1)
+            self.rgb_linear = nn.Linear(W//2, 3)
+        else:
+            self.output_linear = nn.Linear(W, output_ch)
+
+    def forward(self, x):
+        input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
+        h = input_pts
+        for i, l in enumerate(self.pts_linears):
+            h = self.pts_linears[i](h)
+            # M: Here we already use sin activation function in SineLayer
+            h = F.relu(h)
+            if i in self.skips:
+                h = torch.cat([input_pts, h], -1)
+
+        if self.use_viewdirs:
+            alpha = self.alpha_linear(h)
+            feature = self.feature_linear(h)
+            sinViews = self.views_SineLayer(input_views)
+            h = torch.cat([feature, sinViews], -1)
+        
+            for i, l in enumerate(self.views_linears):
+                h = self.views_linears[i](h)
+                # M: Here we already use sin activation function in SineLayer
+                h = F.relu(h)
+
+            rgb = self.rgb_linear(h)
+            outputs = torch.cat([rgb, alpha], -1)
+        else:
+            outputs = self.output_linear(h)
+
+        return outputs    
+
+
+# Model
+# M: SINONE paper: w_0: 10, sigmoid activation in the end
+class SINONE(nn.Module):
+    def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False, omega_0 = 30):
+        """ 
+        """
+        super(SINONE, self).__init__()
+        self.D = D
+        self.W = W
+        self.input_ch = input_ch
+        self.input_ch_views = input_ch_views
+        self.skips = skips
+        self.use_viewdirs = use_viewdirs
+        
+        # M: 8 first input linear layers for 3D position x to predict volume density
+        # M: Here, we intitialize the first as SIREN Sine layers
+        self.pts_linears = nn.ModuleList(
+            [SineLayer(input_ch, W, is_first=False, omega_0=10)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
+        
+        # M: last linear layer for output of prev 3D position (vol density) and view dir to predict view-dependent color
+        # M: Here, we put views through Sine layer first
+        ### Implementation according to the official code release (https://github.com/bmild/nerf/blob/master/run_nerf_helpers.py#L104-L105)
+        self.views_SineLayer = SineLayer(input_ch_views, W, is_first=False, omega_0=10)
+        self.views_linears = nn.ModuleList([nn.Linear(W + W, W//2)])
+
+        ### Implementation according to the paper
+        # self.views_linears = nn.ModuleList(
+        #     [nn.Linear(input_ch_views + W, W//2)] + [nn.Linear(W//2, W//2) for i in range(D//2)])
+        
+        # M: Final output layers to generate rgb a values in needed dimensions from prev layers
+
+        if use_viewdirs:
+            self.feature_linear = nn.Linear(W, W)
+            self.alpha_linear = nn.Linear(W, 1)
+            self.rgb_linear = nn.Linear(W//2, 3)
+        else:
+            self.output_linear = nn.Linear(W, output_ch)
+
+    def forward(self, x):
+        input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
+        h = input_pts
+        for i, l in enumerate(self.pts_linears):
+            h = self.pts_linears[i](h)
+            # M: Here we already use sin activation function in SineLayer
+            h = F.relu(h)
+            if i in self.skips:
+                h = torch.cat([input_pts, h], -1)
+
+        if self.use_viewdirs:
+            alpha = self.alpha_linear(h)
+            feature = self.feature_linear(h)
+            sinViews = self.views_SineLayer(input_views)
+            h = torch.cat([feature, sinViews], -1)
+        
+            for i, l in enumerate(self.views_linears):
+                h = self.views_linears[i](h)
+                # M: Here we already use sin activation function in SineLayer
+                h = F.relu(h)
+
+            rgb = self.rgb_linear(h)
+            rgb = F.sigmoid(h)
+            outputs = torch.cat([rgb, alpha], -1)
+        else:
+            outputs = self.output_linear(h)
+
+        return outputs    
+
+# Model
+class SIRENNeRF3(nn.Module):
+    def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False, omega_0 = 30):
+        """ 
+        """
+        super(SIRENNeRF3, self).__init__()
         self.D = D
         self.W = W
         self.input_ch = input_ch
