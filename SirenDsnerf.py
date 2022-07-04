@@ -152,13 +152,13 @@ class SIRENNeRF2(nn.Module):
         # M: 8 first input linear layers for 3D position x to predict volume density
         # M: Here, we intitialize the first as SIREN Sine layers
         self.pts_linears = nn.ModuleList(
-            [SineLayer(input_ch, W, is_first=False)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
+            [SineLayer(input_ch, W, is_first=True)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
         
         # M: last linear layer for output of prev 3D position (vol density) and view dir to predict view-dependent color
         # M: Here, we put the input of the views through a SineLayer first
         ### Implementation according to the official code release (https://github.com/bmild/nerf/blob/master/run_nerf_helpers.py#L104-L105)
 
-        self.views_SineLayer = SineLayer(input_ch_views, W, is_first=False)
+        self.views_SineLayer = SineLayer(input_ch_views, W, is_first=True)
 
         self.views_linears = nn.ModuleList([nn.Linear(W + W, W//2)]) #nn.ModuleList([nn.Linear(input_ch_views + W, W//2)])
 
@@ -222,12 +222,12 @@ class SINONE(nn.Module):
         # M: 8 first input linear layers for 3D position x to predict volume density
         # M: Here, we intitialize the first as SIREN Sine layers
         self.pts_linears = nn.ModuleList(
-            [SineLayer(input_ch, W, is_first=False, omega_0=10)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
+            [SineLayer(input_ch, W, is_first=True, omega_0=30)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
         
         # M: last linear layer for output of prev 3D position (vol density) and view dir to predict view-dependent color
         # M: Here, we put views through Sine layer first
         ### Implementation according to the official code release (https://github.com/bmild/nerf/blob/master/run_nerf_helpers.py#L104-L105)
-        self.views_SineLayer = SineLayer(input_ch_views, W, is_first=False, omega_0=10)
+        self.views_SineLayer = SineLayer(input_ch_views, W, is_first=True, omega_0=30)
         self.views_linears = nn.ModuleList([nn.Linear(W + W, W//2)])
 
         ### Implementation according to the paper
@@ -249,7 +249,11 @@ class SINONE(nn.Module):
         for i, l in enumerate(self.pts_linears):
             h = self.pts_linears[i](h)
             # M: Here we already use sin activation function in SineLayer
-            h = F.relu(h)
+            if i == len(self.pts_linears)-1:
+                h = F.sigmoid(h)
+            else:
+                h = F.relu(h)     
+
             if i in self.skips:
                 h = torch.cat([input_pts, h], -1)
 
@@ -262,10 +266,12 @@ class SINONE(nn.Module):
             for i, l in enumerate(self.views_linears):
                 h = self.views_linears[i](h)
                 # M: Here we already use sin activation function in SineLayer
-                h = F.relu(h)
+                if i == len(self.views_linears)-1:
+                    h = F.sigmoid(h)
+                else:
+                    h = F.relu(h)
 
             rgb = self.rgb_linear(h)
-            rgb = F.sigmoid(h)
             outputs = torch.cat([rgb, alpha], -1)
         else:
             outputs = self.output_linear(h)
