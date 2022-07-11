@@ -261,6 +261,8 @@ def create_nerf(args):
             model = SINONE(D=args.netdepth, W=args.netwidth,
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
                     input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+        elif args.use_FAST:
+            pass
         else:
             model = NeRF(D=args.netdepth, W=args.netwidth,
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
@@ -275,6 +277,8 @@ def create_nerf(args):
             alpha_model = SINONE(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+        elif args.use_FAST:
+            pass
         else:
             alpha_model = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
@@ -463,6 +467,7 @@ def render_rays(ray_batch,
 
 #     raw = run_network(pts)
     if network_fn is not None:
+        #TODO: replace query function call with cache access call
         raw = network_query_fn(pts, viewdirs, network_fn)
         rgb_map, disp_map, acc_map, weights, depth_map = raw2outputs(raw, z_vals, rays_d, device, raw_noise_std, white_bkgd, pytest=pytest)
     else:
@@ -671,6 +676,7 @@ def config_parser():
                         help='Use SIREN periodic activation functions instead of embedder to capture high frequency signals')
     parser.add_argument("--use_SINONE", action='store_true', 
                         help='Use SIREN periodic activation functions in first linear layer to capture high frequency signals')
+    parser.add_argument("--use_FAST", action='store_true', help='Use FastNeRF Caching to improve render times')
     parser.add_argument("--custom_embedding", action='store_true', 
                         help='Use custom embedding for embedding data to higher freq space')
     parser.add_argument("--gauss_embedding", action='store_true', 
