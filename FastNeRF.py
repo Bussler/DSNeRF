@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 class FastNeRF(nn.Module):
-    def __init__(self, D_pos = 8, D_view = 4, W_pos = 384, W_view = 128, input_pos_ch = 3, input_view_ch = 3, skips_pos = [4], skips_view = [4], use_viewdirs = True, cache_factor = 8, cache_resolution = 768):
+    def __init__(self, D_pos = 8, D_view = 4, W_pos = 384, W_view = 128, input_pos_ch = 3, input_view_ch = 3, output_pos_ch = 3, output_view_ch = 1, skips_pos = [4], skips_view = [4], use_viewdirs = True, cache_factor = 8, cache_resolution = 768):
         super(FastNeRF, self).__init__()
         
         self.D_pos = D_pos
@@ -30,11 +30,17 @@ class FastNeRF(nn.Module):
 
         # D: first network that takes position (x, y, z) as input and 
         # calculates F_pos by outputting (u_i, v_i, w_i) with 0 <= i < cache_factor
-        self.position_mlp = nn.Module()
+        self.position_mlp = nn.Module([nn.Linear(input_pos_ch, W_pos)] + [ nn.Linear(W_pos, W_pos) for i in range(D_pos-1)])
+        self.position_final = nn.Module([nn.Linear(W_pos, output_pos_ch * cache_factor)])
 
         # D: second network that takes viewing direction (theta, phi) as input and
         # calculates F_dir by outputting beta_i with 0 <= i < cache_factor
-        self.direction_mlp = nn.Module()
+        self.direction_mlp = nn.Module([nn.Linear(input_view_ch, W_view)] + [ nn.Linear(W_view, W_view) for i in range(D_view-1)])
+        self.view_final = nn.Module([nn.Linear(W_view, output_view_ch * cache_factor)])
+
+
+    def forward(self, x):
+        pass
 
 
     
