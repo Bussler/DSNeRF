@@ -63,7 +63,7 @@ class SIRENNeRF(nn.Module):
         # M: last linear layer for output of prev 3D position (vol density) and view dir to predict view-dependent color
         # M: Here, we intitialize them as SIREN Sine layers
         ### Implementation according to the official code release (https://github.com/bmild/nerf/blob/master/run_nerf_helpers.py#L104-L105)
-        self.views_linears = nn.ModuleList([SineLayer(input_ch_views + W, W//2)])
+        self.views_linears = nn.ModuleList([SineLayer(input_ch_views + W, W//2, is_first=True)])
 
         ### Implementation according to the paper
         # self.views_linears = nn.ModuleList(
@@ -151,6 +151,7 @@ class SIRENNeRF2(nn.Module):
         
         # M: 8 first input linear layers for 3D position x to predict volume density
         # M: Here, we intitialize the first as SIREN Sine layers
+        # M: TODO introduce extra layer to get same input dim as PE
         self.pts_linears = nn.ModuleList(
             [SineLayer(input_ch, W, is_first=True)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
         
@@ -251,6 +252,7 @@ class SINONE(nn.Module):
             # M: Here we already use sin activation function in SineLayer
             if i == len(self.pts_linears)-1:
                 h = F.sigmoid(h)
+                #h = torch.sin(h*10)
             else:
                 h = F.relu(h)     
 
@@ -268,6 +270,7 @@ class SINONE(nn.Module):
                 # M: Here we already use sin activation function in SineLayer
                 if i == len(self.views_linears)-1:
                     h = F.sigmoid(h)
+                    #h = torch.sin(h*10)
                 else:
                     h = F.relu(h)
 

@@ -254,7 +254,7 @@ def create_nerf(args):
     if args.alpha_model_path is None:
         # M: initialize the model: normal NeRF or SirenDsnerf
         if args.use_SIREN:
-            model = SIRENNeRF2(D=args.netdepth, W=args.netwidth,
+            model = SIRENNeRF(D=args.netdepth, W=args.netwidth,
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
                     input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         elif args.use_SINONE:
@@ -268,7 +268,7 @@ def create_nerf(args):
         grad_vars = list(model.parameters())
     else:
         if args.use_SIREN:
-            alpha_model = SIRENNeRF2(D=args.netdepth_fine, W=args.netwidth_fine,
+            alpha_model = SIRENNeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         elif args.use_SINONE:
@@ -296,7 +296,7 @@ def create_nerf(args):
     if args.N_importance > 0:
         if args.alpha_model_path is None:
             if args.use_SIREN:
-                model_fine = SIRENNeRF2(D=args.netdepth_fine, W=args.netwidth_fine,
+                model_fine = SIRENNeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
             elif args.use_SINONE:
