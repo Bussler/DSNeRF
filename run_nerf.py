@@ -11,6 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
 
 import matplotlib.pyplot as plt
+from FastNeRF import FastNeRF
 
 from run_nerf_helpers import *
 
@@ -241,7 +242,7 @@ def create_nerf(args):
         B = torch.from_numpy(B).float().to(device)
         # TODO scale gauss mapping?
 
-    useIdentity = args.use_SIREN or args.use_SINONE
+    useIdentity = args.use_SIREN or args.use_SINONE or args.use_FAST
 
     embed_fn, input_ch = get_embedder(args.multires, args.i_embed, use_Identity=useIdentity, customEmbedding=args.custom_embedding, gaussEmbedding=B)
 
@@ -262,7 +263,7 @@ def create_nerf(args):
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
                     input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         elif args.use_FAST:
-            pass
+            model = FastNeRF().to(device)
         else:
             model = NeRF(D=args.netdepth, W=args.netwidth,
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
@@ -278,7 +279,7 @@ def create_nerf(args):
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         elif args.use_FAST:
-            pass
+            alpha_model = FastNeRF().to(device)
         else:
             alpha_model = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
@@ -307,6 +308,8 @@ def create_nerf(args):
                 model_fine = SINONE(D=args.netdepth, W=args.netwidth,
                         input_ch=input_ch, output_ch=output_ch, skips=skips,
                         input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
+            elif args.use_FAST:
+                model_fine = FastNeRF().to(device)
             else:
                 model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,

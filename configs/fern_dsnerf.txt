@@ -26,3 +26,5 @@ no_ndc = True
 colmap_depth = True
 depth_loss = True
 depth_lambda = 0.1
+
+use_FAST

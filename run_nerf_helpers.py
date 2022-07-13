@@ -179,9 +179,6 @@ class NeRF(nn.Module):
         self.alpha_linear.weight.data = torch.from_numpy(np.transpose(weights[idx_alpha_linear]))
         self.alpha_linear.bias.data = torch.from_numpy(np.transpose(weights[idx_alpha_linear+1]))
 
-class FastNeRF(nn.Module):
-    def __init__(self, D=8, W=256, input_ch=3, input_ch_view=3, output_ch=4, skips=[4], use_viewdirs=False):
-        pass
 
 class NeRF_RGB(nn.Module):
     def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False, alpha_model=None):
