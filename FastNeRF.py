@@ -79,6 +79,30 @@ class FastNeRF(nn.Module):
         return torch.cat([result, alpha], -1)
 
 
+    def position_forward(self, input_pts):
+        h = input_pts
+
+        for i, layer in enumerate(self.position_mlp):
+            h = self.position_mlp[i](h)
+            h = self.activation(h)
+            if i in self.skips_pos:
+                h = torch.cat([input_pts, h], -1)
+        alpha = self.alpha_linear(h)
+        position_features = self.position_final(h)
+
+        return position_features, alpha
+
+    def view_forward(self, input_views):
+        h = input_views
+        for i, layer in enumerate(self.direction_mlp):
+            h = self.direction_mlp[i](h)
+            h = self.activation(h)
+            if i in self.skips_pos:
+                h = torch.cat([input_views, h], -1)
+        view_features = self.view_final(h)
+
+        return view_features
+
 
     def activation(self, x):
         return F.relu(x)
