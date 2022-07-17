@@ -4,6 +4,7 @@ import numpy as np
 import math
 from PIL import Image
 import cv2
+import os
 
 
 # M: code from https://github.com/pranjaldatta/SSIM-PyTorch/blob/master/SSIM_notebook.ipynb
@@ -118,6 +119,34 @@ def SSIMmain(pathImg1, pathImg2):
     true_vs_false = ssim(_img1, _img2, val_range=255)
     print("True vs False Image SSIM Score:", true_vs_false)
 
+def SSIMAll():
+    imgG = load_images('compareSSIM/DJI_20200223_163018_942.png') # 3
+    _imgG = tensorify(imgG)
+
+    dir_path = r'C:/github/DSNeRF/compareSSIM/gaussOnlySIN'
+    imgs = []
+    for path in os.listdir(dir_path):
+    # check if current path is a file
+        if os.path.isfile(os.path.join(dir_path, path)):
+            imgs.append('compareSSIM/gaussOnlySIN/'+path)
+    
+    print("Read in imgs, starting caluclation")
+
+    bestSSIM = 0
+    bestname = ''
+    for im in imgs:
+        img = load_images(im)
+        _img = tensorify(img)
+        true_vs_false = ssim(_imgG, _img, val_range=255)
+
+        if true_vs_false > bestSSIM:
+            bestSSIM = true_vs_false
+            bestname = im
+
+    print("Best SSIM: ", bestSSIM, " at: ", bestname)
+
+
+#SSIMAll()
 
 if __name__=='__main__':
 

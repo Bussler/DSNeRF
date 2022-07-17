@@ -72,11 +72,11 @@ class SIRENNeRF(nn.Module):
         # M: Final output layers to generate rgb a values in needed dimensions from prev layers
 
         if use_viewdirs:
-            self.feature_linear = nn.Linear(W, W)
-            self.alpha_linear = nn.Linear(W, 1)
-            self.rgb_linear = nn.Linear(W//2, 3)
+            self.feature_linear = SineLayer(W, W)
+            self.alpha_linear = SineLayer(W, 1)
+            self.rgb_linear = SineLayer(W//2, 3)
         else:
-            self.output_linear = nn.Linear(W, output_ch)
+            self.output_linear = SineLayer(W, output_ch)
 
     def forward(self, x):
         input_pts, input_views = torch.split(x, [self.input_ch, self.input_ch_views], dim=-1)
