@@ -1,4 +1,4 @@
-expname = fern_2v
+expname = fern_2v_Embeddings
 basedir = ./logs
 datadir = ./data/fern_2view
 dataset_type = llff
@@ -12,9 +12,9 @@ N_importance = 64
 use_viewdirs = True
 raw_noise_std = 1e0
 
-chunk = 8192
-netchunk = 16384
-netdepth = 4
+chunk = 2048
+netchunk = 4096
+netdepth = 8
 
 i_testset = 1000
 i_video = 10000
@@ -26,5 +26,4 @@ no_ndc = True
 colmap_depth = True
 depth_loss = True
 depth_lambda = 0.1
-
 use_FAST

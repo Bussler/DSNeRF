@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm, trange
+import hiddenlayer as hl
 
 import matplotlib.pyplot as plt
 from FastNeRF import FastNeRF
@@ -242,7 +243,7 @@ def create_nerf(args):
         B = torch.from_numpy(B).float().to(device)
         # TODO scale gauss mapping?
 
-    useIdentity = args.use_SIREN or args.use_SINONE or args.use_FAST
+    useIdentity = args.use_SIREN or args.use_SINONE
 
     embed_fn, input_ch = get_embedder(args.multires, args.i_embed, use_Identity=useIdentity, customEmbedding=args.custom_embedding, gaussEmbedding=B)
 
@@ -263,7 +264,11 @@ def create_nerf(args):
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
                     input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         elif args.use_FAST:
-            model = FastNeRF().to(device)
+            model = FastNeRF(D_pos=args.netdepth, D_view=args.netdepth//2, 
+                                W_pos=384, W_view=256, 
+                                input_ch=input_ch, input_ch_views=input_ch_views, 
+                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=8, cache_resolution=768
+                            ).to(device)
         else:
             model = NeRF(D=args.netdepth, W=args.netwidth,
                     input_ch=input_ch, output_ch=output_ch, skips=skips,
@@ -279,7 +284,11 @@ def create_nerf(args):
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
                             input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
         elif args.use_FAST:
-            alpha_model = FastNeRF().to(device)
+            alpha_model = FastNeRF(D_pos=args.netdepth, D_view=args.netdepth//2, 
+                                W_pos=384, W_view=256, 
+                                input_ch=input_ch, input_ch_views=input_ch_views, 
+                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=8, cache_resolution=768
+                            ).to(device)
         else:
             alpha_model = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
@@ -309,7 +318,11 @@ def create_nerf(args):
                         input_ch=input_ch, output_ch=output_ch, skips=skips,
                         input_ch_views=input_ch_views, use_viewdirs=args.use_viewdirs).to(device)
             elif args.use_FAST:
-                model_fine = FastNeRF().to(device)
+                model_fine = FastNeRF(D_pos=args.netdepth, D_view=args.netdepth//2, 
+                                W_pos=384, W_view=256, 
+                                input_ch=input_ch, input_ch_views=input_ch_views, 
+                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=8, cache_resolution=768
+                            ).to(device)
             else:
                 model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
                             input_ch=input_ch, output_ch=output_ch, skips=skips,
@@ -500,6 +513,7 @@ def render_rays(ray_batch,
         run_fn = network_fn if network_fine is None else network_fine
 #         raw = run_network(pts, fn=run_fn)
         raw = network_query_fn(pts, viewdirs, run_fn)
+
 
         rgb_map, disp_map, acc_map, weights, depth_map = raw2outputs(raw, z_vals, rays_d, device, raw_noise_std, white_bkgd, pytest=pytest)
 
@@ -788,6 +802,9 @@ def train():
 
     # Create nerf model
     render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer = create_nerf(args)
+
+    
+
 
     # M: log model architecture to Tensorboard
     dimInput = render_kwargs_train['network_fn'].input_ch + render_kwargs_train['network_fn'].input_ch_views
