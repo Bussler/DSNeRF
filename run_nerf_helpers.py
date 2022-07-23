@@ -68,7 +68,6 @@ class Embedder:
 
 
 def get_embedder(multires, i=0, use_Identity = False, customEmbedding = False, gaussEmbedding = None):
-    
     # M: in case we use SIREN, we don't concat the input with fourier matrix, but instead just give back the input
     if i == -1 or use_Identity:
         return nn.Identity(), 3
