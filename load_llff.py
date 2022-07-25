@@ -46,7 +46,7 @@ def _minify(basedir, factors=[], resolutions=[]):
         print('Minifying', r, basedir)
         
         os.makedirs(imgdir)
-        check_output('cp {}/* {}'.format(imgdir_orig, imgdir), shell=True)
+        check_output('copy {}/ {}/'.format(imgdir_orig, imgdir), shell=True)
         
         ext = imgs[0].split('.')[-1]
         args = ' '.join(['mogrify', '-resize', resizearg, '-format', 'png', '*.{}'.format(ext)])

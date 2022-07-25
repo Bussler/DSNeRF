@@ -1,4 +1,4 @@
-expname = fern_2v_Embeddings
+expname = fern_2v_Embeddings_TEST
 basedir = ./logs
 datadir = ./data/fern_2view
 dataset_type = llff
@@ -17,8 +17,9 @@ netchunk = 4096
 netdepth = 8
 
 i_testset = 1000
-i_video = 10000
-N_iters = 20000
+i_video = 1200
+i_weights = 500
+N_iters = 1000
 
 train_scene = [0, 1]
 test_scene = [-1]
@@ -28,7 +29,5 @@ depth_loss = True
 depth_lambda = 0.1
 use_FAST
 
-cache_only
-cache_res = 50
-
-cache_view_res = 100
+cache_res = 512
+cache_view_res = 384

@@ -46,6 +46,16 @@ def batchify(fn, chunk):
     if chunk is None:
         return fn
     def ret(inputs):
+        return torch.cat([fn(inputs[i:i+chunk]) for i in range(0, inputs.shape[0], chunk)], 0)
+    return ret
+
+
+def batchify_pos(fn, chunk):
+    """Constructs a version of 'fn' that applies to smaller batches.
+    """
+    if chunk is None:
+        return fn
+    def ret(inputs):
         result = []
         alphas = []
         for i in range(0, inputs.shape[0], chunk):
@@ -97,7 +107,7 @@ def run_network_pos(inputs, fn, embed_fn, embeddirs_fn, netchunk=1024*64):
     
     inputs_flat = torch.reshape(inputs, [-1, inputs.shape[-1]])
     embedded = embed_fn(inputs_flat)
-    return batchify(fn, netchunk)(embedded)
+    return batchify_pos(fn, netchunk)(embedded)
 
 def run_network_view(inputs, fn_view, embed_fn, embeddirs_fn, netchunk=1024*64):
     inputs_flat = torch.reshape(inputs, [-1, inputs.shape[-1]])
@@ -214,7 +224,7 @@ def render(H, W, focal, chunk=1024*32, rays=None, c2w=None, ndc=True,
                   near=0., far=1.,
                   use_viewdirs=False, c2w_staticcam=None, depths=None,
                   **kwargs):
-    """ Render rays
+    """Render rays
     Args:
       H: int. Height of image in pixels.
       W: int. Width of image in pixels.
@@ -235,7 +245,40 @@ def render(H, W, focal, chunk=1024*32, rays=None, c2w=None, ndc=True,
       disp_map: [batch_size]. Disparity map. Inverse of depth.
       acc_map: [batch_size]. Accumulated opacity (alpha) along a ray.
       extras: dict with everything returned by render_rays().
-   """
+    """
+    if c2w is not None:
+        # special case to render full image
+        rays_o, rays_d = get_rays(H, W, focal, c2w, device)
+    else:
+        # use provided ray batch
+        rays_o, rays_d = rays
+
+    if use_viewdirs:
+        # provide ray directions as input
+        viewdirs = rays_d
+        if c2w_staticcam is not None:
+            # special case to visualize effect of viewdirs
+            rays_o, rays_d = get_rays(H, W, focal, c2w_staticcam, device)
+        viewdirs = viewdirs / torch.norm(viewdirs, dim=-1, keepdim=True)
+        viewdirs = torch.reshape(viewdirs, [-1,3]).float()
+
+    sh = rays_d.shape # [..., 3]
+    if ndc:
+        # for forward facing scenes
+        rays_o, rays_d = ndc_rays(H, W, focal, 1., rays_o, rays_d)
+
+    # Create ray batch
+    rays_o = torch.reshape(rays_o, [-1,3]).float()
+    rays_d = torch.reshape(rays_d, [-1,3]).float()
+
+    near, far = near * torch.ones_like(rays_d[...,:1]), far * torch.ones_like(rays_d[...,:1])
+    rays = torch.cat([rays_o, rays_d, near, far], -1) # B x 8
+    if depths is not None:
+        rays = torch.cat([rays, depths.reshape(-1,1)], -1)
+    if use_viewdirs:
+        rays = torch.cat([rays, viewdirs], -1)
+
+    # Render and reshape
     all_ret = batchify_rays(rays, chunk, **kwargs)
     for k in all_ret:
         k_sh = list(sh[:-1]) + list(all_ret[k].shape[1:])
@@ -246,7 +289,7 @@ def render(H, W, focal, chunk=1024*32, rays=None, c2w=None, ndc=True,
     ret_dict = {k : all_ret[k] for k in all_ret if k not in k_extract}
     return ret_list + [ret_dict]
 
-def cache_position( pts = None, res_pos = 20, near=0., far=1., cache_factor = 8, chunk=1024*32, **kwargs):
+def cache_position( pts = None, res_pos = 20, near=0., far=1., cache_factor = 4, chunk=1024*32, **kwargs):
 
     pts_iter = iter(DataLoader(pts, batch_size = chunk, shuffle=False, num_workers=0))
     all_ret = {}
@@ -260,7 +303,7 @@ def cache_position( pts = None, res_pos = 20, near=0., far=1., cache_factor = 8,
             pts_iter = iter(DataLoader(pts, batch_size = chunk, shuffle=False, num_workers=0))
             batch = next(pts_iter).to(device)
         ret, alphas = batchify_pts(batch, chunk, **kwargs)
-        ret_np_new = ret[0].cpu().detach().numpy().reshape((ret[0].shape[0], cache_factor * 5))
+        ret_np_new = ret[0].cpu().detach().numpy().reshape((ret[0].shape[0], cache_factor * 3))
         try:
             ret_np = np.vstack((ret_np, ret_np_new))
         except NameError:
@@ -270,14 +313,28 @@ def cache_position( pts = None, res_pos = 20, near=0., far=1., cache_factor = 8,
             alpha_np = np.vstack((alpha_np, alpha_np_new))
         except NameError:
             alpha_np = alpha_np_new
-            
-    ret_df = pd.DataFrame(ret_np)
-    ret_df.to_csv('./cache/cache_pos_batch.csv')
-    ret_df = pd.DataFrame(alpha_np)
-    ret_df.to_csv('./cache/cache_alpha_batch.csv')
+
+    u = ret_np[:, [i for i in range(0, cache_factor * 3, 3)]]
+    v = ret_np[:, [i for i in range(1, cache_factor * 3, 3)]]
+    w = ret_np[:, [i for i in range(2, cache_factor * 3, 3)]]
+
+    u_bytecode = u.tobytes(order='C')
+    with open("./cache/u", "wb") as u_file:
+        u_file.write(u_bytecode)
+    v_bytecode = v.tobytes(order='C')
+    with open("./cache/v", "wb") as v_file:
+        v_file.write(v_bytecode)
+    w_bytecode = w.tobytes(order='C')
+    with open("./cache/w", "wb") as w_file:
+        w_file.write(w_bytecode)
+
+    alpha_bytecode = alpha_np.tobytes(order='C')
+    with open("./cache/alpha", "wb") as alpha:
+        alpha.write(alpha_bytecode)
+
     return all_ret
 
-def cache_viewdirs(viewdirs = None, res_view = 20,near=0., far=1., cache_factor = 8, chunk=1024*32, **kwargs):
+def cache_viewdirs(viewdirs = None, res_view = 20,near=0., far=1., cache_factor = 4, chunk=1024*32, **kwargs):
     view_iter = iter(DataLoader(viewdirs, batch_size = chunk, shuffle=False, num_workers=0))
     all_ret = {}
     for i in range(viewdirs.shape[0] // chunk +1):
@@ -293,9 +350,9 @@ def cache_viewdirs(viewdirs = None, res_view = 20,near=0., far=1., cache_factor 
                 ret_np = np.vstack((ret_np, ret_np_new))
             except NameError:
                 ret_np = ret_np_new
-            
-    ret_df = pd.DataFrame(ret_np)
-    ret_df.to_csv('./cache/cache_view_batch.csv')
+    view_bytecode = ret_np.tobytes(order='C')
+    with open("./cache/view", "wb") as view_file:
+        view_file.write(view_bytecode)
     return all_ret
 
 def cache_bounds(H, W, focal, chunk=1024*32, rays=None, c2w=None, ndc=True,
@@ -456,7 +513,7 @@ def create_nerf(args):
             model = FastNeRF(D_pos=args.netdepth, D_view=args.netdepth//2, 
                                 W_pos=384, W_view=256, 
                                 input_ch=input_ch, input_ch_views=input_ch_views, 
-                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=8, cache_resolution=768
+                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=4, cache_resolution=768
                             ).to(device)
         else:
             model = NeRF(D=args.netdepth, W=args.netwidth,
@@ -476,7 +533,7 @@ def create_nerf(args):
             alpha_model = FastNeRF(D_pos=args.netdepth, D_view=args.netdepth//2, 
                                 W_pos=384, W_view=256, 
                                 input_ch=input_ch, input_ch_views=input_ch_views, 
-                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=8, cache_resolution=768
+                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=4, cache_resolution=768
                             ).to(device)
         else:
             alpha_model = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
@@ -510,7 +567,7 @@ def create_nerf(args):
                 model_fine = FastNeRF(D_pos=args.netdepth, D_view=args.netdepth//2, 
                                 W_pos=384, W_view=256, 
                                 input_ch=input_ch, input_ch_views=input_ch_views, 
-                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=8, cache_resolution=768
+                                output_ch=output_ch, output_ch_view=1, use_viewdirs=args.use_viewdirs, cache_factor=4, cache_resolution=768
                             ).to(device)
             else:
                 model_fine = NeRF(D=args.netdepth_fine, W=args.netwidth_fine,
@@ -660,13 +717,11 @@ def render_rays(ray_batch,
     viewdirs = ray_batch[:,-3:] if ray_batch.shape[-1] > 9 else None
     bounds = torch.reshape(ray_batch[...,6:8], [-1,1,2])
     near, far = bounds[...,0], bounds[...,1] # [-1,1]
-
     t_vals = torch.linspace(0., 1., steps=N_samples).to(device)
     if not lindisp:
         z_vals = near * (1.-t_vals) + far * (t_vals)
     else:
         z_vals = 1./(1./near * (1.-t_vals) + 1./far * (t_vals))
-
     z_vals = z_vals.expand([N_rays, N_samples])
 
     if perturb > 0.:
@@ -1226,8 +1281,8 @@ def train():
     
     start = start + 1
 
-    maxBounds = torch.tensor([0, 0, 0])
-    minBounds = torch.tensor([0, 0, 0])
+    maxBounds = torch.tensor([0, 0, 0]).to(device)
+    minBounds = torch.tensor([0, 0, 0]).to(device)
 
     for i in trange(start, N_iters):
         time0 = time.time()
@@ -1308,12 +1363,14 @@ def train():
 
         # timer_concate = time.perf_counter()
 
-        if args.cache_only:
-            print('WRITING TO CACHE')
-            maxBounds, minBounds = cache_bounds(H, W, focal, chunk=args.chunk, rays=batch_rays,
+        if not args.render_only:
+            max_bounds, min_bounds = cache_bounds(H, W, focal, chunk=args.chunk, rays=batch_rays,
                                                 verbose=i < 10, retraw=True,
                                                 **render_kwargs_cache)
-            continue
+            maxBounds = torch.maximum(max_bounds.to(device), maxBounds)
+            minBounds = torch.minimum(min_bounds.to(device), minBounds)
+            if args.cache_only:
+                continue
         
 
         # M: get the predicted rgb, depth values etc
@@ -1501,7 +1558,7 @@ def train():
 
         global_step += 1
 
-    if(args.cache_only):
+    if(not args.render_only):
         print('MAX', maxBounds)
         print('MIN', minBounds)
 
@@ -1535,10 +1592,6 @@ def generate_cache_samples_pos(maxBounds, minBounds, cache_resolution=100):
 
     pts = torch.cartesian_prod(x, y, z)
 
-    ret_np = pts.cpu().detach().numpy()
-    ret_df = pd.DataFrame(ret_np)
-    ret_df.to_csv('./cache/position_indices.csv')
-
     return pts
 
 def generate_cache_samples_view(cache_resolution=100):
@@ -1548,9 +1601,7 @@ def generate_cache_samples_view(cache_resolution=100):
     
 
     ret = torch.cartesian_prod(theta, sigma)
-    ret_np = ret.cpu().detach().numpy()
-    ret_df = pd.DataFrame(ret_np)
-    ret_df.to_csv('./cache/view_indices.csv')
+    
     return ret
     
     
