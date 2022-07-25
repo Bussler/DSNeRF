@@ -1,4 +1,4 @@
-expname = fern_2v
+expname = fern_2vBASIC
 basedir = ./logs
 datadir = ./data/fern_2view
 dataset_type = llff
@@ -17,8 +17,9 @@ netchunk = 16384
 netdepth = 4
 
 i_testset = 1000
-i_video = 10000
+i_video = 20000
 N_iters = 20000
+i_weights = 10000
 
 train_scene = [0, 1]
 test_scene = [-1]

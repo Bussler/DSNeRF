@@ -1,4 +1,4 @@
-expname = fern_2vGaussEmbedding1With64
+expname = fern_2vGaussEmbeddingWith64
 basedir = ./logs
 datadir = ./data/fern_2view
 dataset_type = llff

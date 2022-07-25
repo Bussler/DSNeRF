@@ -1,6 +1,6 @@
-expname = fern_2vSINONE
+expname = fern_mvBASIC
 basedir = ./logs
-datadir = ./data/fern_2view
+datadir = ./data/fernMultiView
 dataset_type = llff
 
 factor = 8
@@ -27,5 +27,3 @@ no_ndc = True
 colmap_depth = True
 depth_loss = True
 depth_lambda = 0.1
-
-use_SINONE

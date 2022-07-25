@@ -1,9 +1,7 @@
-expname = fern_2vSINONE
+expname = horns_5vSINONE
 basedir = ./logs
-datadir = ./data/fern_2view
+datadir = ./data/horns_5views
 dataset_type = llff
-
-factor = 8
 
 N_rand = 1024
 N_samples = 64
@@ -14,14 +12,14 @@ raw_noise_std = 1e0
 
 chunk = 8192
 netchunk = 16384
-netdepth = 4
+netdepth = 8
 
 i_testset = 1000
-i_video = 20000
-N_iters = 20000
-i_weights = 10000
+i_video = 50000
+N_iters = 50000
+i_weights = 25000
 
-train_scene = [0, 1]
+train_scene = [0, 1, 2, 3, 4]
 test_scene = [-1]
 no_ndc = True
 colmap_depth = True

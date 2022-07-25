@@ -89,7 +89,7 @@ def ssim(img1, img2, val_range, window_size=11, window=None, size_average=True, 
     return ret
 
 # helper function to load images
-load_images = lambda x: np.asarray(Image.open(x).resize((504, 378))) #(480, 640)
+load_images = lambda x: np.asarray(Image.open(x).resize((800, 800))) #(480, 640) (504, 378)
 
 # Helper functions to convert to Tensors
 tensorify = lambda x: torch.Tensor(x.transpose((2, 0, 1))).unsqueeze(0).float().div(255.0)
@@ -120,15 +120,16 @@ def SSIMmain(pathImg1, pathImg2):
     print("True vs False Image SSIM Score:", true_vs_false)
 
 def SSIMAll():
-    imgG = load_images('compareSSIM/DJI_20200223_163018_942.png') # 3
+    imgG = load_images('compareSSIM/hotdog/r_2.png') # 3, 3 hotdog
+    imgG = imgG[:,:,0:3]
     _imgG = tensorify(imgG)
 
-    dir_path = r'C:/github/DSNeRF/compareSSIM/gaussOnlySIN'
+    dir_path = r'C:/github/DSNeRF/compareSSIM/hotdog_Basic'
     imgs = []
     for path in os.listdir(dir_path):
     # check if current path is a file
         if os.path.isfile(os.path.join(dir_path, path)):
-            imgs.append('compareSSIM/gaussOnlySIN/'+path)
+            imgs.append('compareSSIM/hotdog_Basic/'+path)
     
     print("Read in imgs, starting caluclation")
 

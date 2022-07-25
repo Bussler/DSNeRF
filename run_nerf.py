@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from run_nerf_helpers import *
 
 from SirenDsnerf import SIRENNeRF, SIRENNeRF2, SINONE
+from SSIMGenerator import ssim
 
 from load_llff import load_llff_data, load_colmap_depth
 from load_dtu import load_dtu_data
@@ -240,6 +241,7 @@ def create_nerf(args):
         B = np.random.normal(size=(mappingSize, 3))
         B = torch.from_numpy(B).float().to(device)
         # TODO scale gauss mapping?
+        B *= 2.
 
     useIdentity = args.use_SIREN or args.use_SINONE
 
@@ -1143,7 +1145,13 @@ def train():
         writer.add_scalar('Loss/train', loss.item(), i)
 
         if i%args.i_print==0:
-            tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")
+            # M: calculate SSIM
+            #rgb255 = torch.reshape(torch.round(rgb*255), (3,1,rgb.shape[0]))
+            #target_s255 = torch.reshape(target_s*255, (3,1,target_s.shape[0]))
+            #ssimValue = ssim(rgb255, target_s255, 255)
+            #writer.add_scalar('Loss/SSIM', ssimValue.item(), i)
+            
+            tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")#  SSIM: {ssimValue.item()} ")
         """
             print(expname, i, psnr.numpy(), loss.numpy(), global_step.numpy())
             print('iter time {:.05f}'.format(dt))
