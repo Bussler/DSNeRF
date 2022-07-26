@@ -301,8 +301,7 @@ def cache_position( pts = None, res_pos = 20, near=0., far=1., cache_factor = 4,
             batch = next(pts_iter).to(device)
             
         except StopIteration:
-            pts_iter = iter(DataLoader(pts, batch_size = chunk, shuffle=False, num_workers=0))
-            batch = next(pts_iter).to(device)
+            break
         ret, alphas = batchify_pts(batch, chunk, **kwargs)
         ret_np_new = ret[0].cpu().detach().numpy().reshape((ret[0].shape[0], cache_factor * 3))
         try:
