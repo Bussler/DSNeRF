@@ -17,7 +17,7 @@ netchunk = 4096
 netdepth = 8
 
 i_testset = 1000
-i_video = 1200
+i_video = 12000
 i_weights = 500
 N_iters = 1000
 

@@ -294,8 +294,9 @@ def cache_position( pts = None, res_pos = 20, near=0., far=1., cache_factor = 4,
     pts_iter = iter(DataLoader(pts, batch_size = chunk, shuffle=False, num_workers=0))
     all_ret = {}
     
-    
-    for i in range(pts.shape[0] // chunk +1):
+    t = time.time()
+    for i in tqdm(range(pts.shape[0] // chunk +1)):
+        print(i, time.time() - t)
         try:
             batch = next(pts_iter).to(device)
             
@@ -318,18 +319,25 @@ def cache_position( pts = None, res_pos = 20, near=0., far=1., cache_factor = 4,
     v = ret_np[:, [i for i in range(1, cache_factor * 3, 3)]]
     w = ret_np[:, [i for i in range(2, cache_factor * 3, 3)]]
 
+    print('Created U, V, W arrays')
+
+    print('U-SHAPE: ',u.shape)
+    print('Caching Factor: ', cache_factor)
+    print('U type: ', u.dtype)
+
+
     u_bytecode = u.tobytes(order='C')
-    with open("./cache/u", "wb") as u_file:
+    with open("./cache/u64bit", "wb") as u_file:
         u_file.write(u_bytecode)
     v_bytecode = v.tobytes(order='C')
-    with open("./cache/v", "wb") as v_file:
+    with open("./cache/v64bit", "wb") as v_file:
         v_file.write(v_bytecode)
     w_bytecode = w.tobytes(order='C')
-    with open("./cache/w", "wb") as w_file:
+    with open("./cache/w64bit", "wb") as w_file:
         w_file.write(w_bytecode)
 
     alpha_bytecode = alpha_np.tobytes(order='C')
-    with open("./cache/alpha", "wb") as alpha:
+    with open("./cache/alpha64bit", "wb") as alpha:
         alpha.write(alpha_bytecode)
 
     return all_ret
@@ -351,7 +359,7 @@ def cache_viewdirs(viewdirs = None, res_view = 20,near=0., far=1., cache_factor 
             except NameError:
                 ret_np = ret_np_new
     view_bytecode = ret_np.tobytes(order='C')
-    with open("./cache/view", "wb") as view_file:
+    with open("./cache/view64bit", "wb") as view_file:
         view_file.write(view_bytecode)
     return all_ret
 
@@ -1569,7 +1577,7 @@ def train():
 
         viewdirs = generate_cache_samples_view(view_res).to(device)
         
-        
+        print('PTS shape: ', pts.shape)
 
         result = cache_position(pts, res, **render_kwargs_cache)
 
@@ -1601,7 +1609,7 @@ def generate_cache_samples_view(cache_resolution=100):
     
 
     ret = torch.cartesian_prod(theta, sigma)
-    
+
     return ret
     
     
