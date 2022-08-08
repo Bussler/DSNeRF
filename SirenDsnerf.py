@@ -8,14 +8,6 @@ import numpy as np
 
 # M: taken from https://github.com/vsitzmann/siren
 class SineLayer(nn.Module):
-    # See paper sec. 3.2, final paragraph, and supplement Sec. 1.5 for discussion of omega_0.
-    
-    # If is_first=True, omega_0 is a frequency factor which simply multiplies the activations before the 
-    # nonlinearity. Different signals may require different omega_0 in the first layer - this is a 
-    # hyperparameter.
-    
-    # If is_first=False, then the weights will be divided by omega_0 so as to keep the magnitude of 
-    # activations constant, but boost gradients to the weight matrix (see supplement Sec. 1.5)
     
     def __init__(self, in_features, out_features, bias=True,
                  is_first=False, omega_0=30):
@@ -207,7 +199,7 @@ class SIRENNeRF2(nn.Module):
 
 
 # Model
-# M: SINONE paper: w_0: 10, sigmoid activation in the end
+# M: SINONE paper: First Layer Sin-Activation, sigmoid activation in the end
 class SINONE(nn.Module):
     def __init__(self, D=8, W=256, input_ch=3, input_ch_views=3, output_ch=4, skips=[4], use_viewdirs=False, omega_0 = 30):
         """ 
@@ -226,7 +218,7 @@ class SINONE(nn.Module):
             [SineLayer(input_ch, W, is_first=True, omega_0=30)] + [nn.Linear(W, W) if i not in self.skips else nn.Linear(W + input_ch, W) for i in range(D-1)])
         
         # M: last linear layer for output of prev 3D position (vol density) and view dir to predict view-dependent color
-        # M: Here, we put views through Sine layer first
+        # M: Here, we put views through Sine layer first to get higher frequency embedding
         ### Implementation according to the official code release (https://github.com/bmild/nerf/blob/master/run_nerf_helpers.py#L104-L105)
         self.views_SineLayer = SineLayer(input_ch_views, W, is_first=True, omega_0=30)
         self.views_linears = nn.ModuleList([nn.Linear(W + W, W//2)])

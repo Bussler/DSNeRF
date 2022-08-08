@@ -236,12 +236,12 @@ def create_nerf(args):
     # M: create gauss random sampled matrix
     B = None
     if args.gauss_embedding:
-        # multires x 3
+        # M: multires x 3
         mappingSize=args.multires
         B = np.random.normal(size=(mappingSize, 3))
         B = torch.from_numpy(B).float().to(device)
-        # TODO scale gauss mapping?
-        B *= 2.
+        # M: scale gauss mapping?
+        B *= 2.5
 
     useIdentity = args.use_SIREN or args.use_SINONE
 
@@ -254,7 +254,7 @@ def create_nerf(args):
     output_ch = 5 if args.N_importance > 0 else 4
     skips = [4]
     if args.alpha_model_path is None:
-        # M: initialize the model: normal NeRF or SirenDsnerf
+        # M: initialize the model: normal NeRF or SirenDsnerf/ SINONE
         if args.use_SIREN:
             model = SIRENNeRF(D=args.netdepth, W=args.netwidth,
                     input_ch=input_ch, output_ch=output_ch, skips=skips,

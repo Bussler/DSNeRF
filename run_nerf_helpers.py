@@ -52,6 +52,7 @@ class Embedder:
                 embed_fns.append(lambda x, p_fn=p_fn, freq=freq : p_fn(x * freq))
                 out_dim += d
 
+        # M: Handle output size in case of Gaussian embedding
         if self.B is not None:
             out_dim = (self.B.size(0)*2) + 3
                     
@@ -61,7 +62,7 @@ class Embedder:
     def embed(self, inputs):
         if self.B is None: # PE or custom embedding
             return torch.cat([fn(inputs) for fn in self.embed_fns], -1)
-        else: # Gaussian embedding
+        else: # M: Gaussian embedding
             x_proj = (2.*np.pi*inputs) @ self.B.T
             return torch.cat([inputs, torch.sin(x_proj), torch.cos(x_proj)], axis=-1)
 
