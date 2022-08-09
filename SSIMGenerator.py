@@ -7,7 +7,7 @@ import cv2
 import os
 
 
-# M: code from https://github.com/pranjaldatta/SSIM-PyTorch/blob/master/SSIM_notebook.ipynb
+# M: code adapted from https://github.com/pranjaldatta/SSIM-PyTorch/blob/master/SSIM_notebook.ipynb
 
 def gaussian(window_size, sigma):
     """
@@ -120,16 +120,16 @@ def SSIMmain(pathImg1, pathImg2):
     print("True vs False Image SSIM Score:", true_vs_false)
 
 def SSIMAll():
-    imgG = load_images('compareSSIM/hotdog/r_2.png') # 3, 3 hotdog
+    imgG = load_images('compareSSIM\DJI_20200223_163018_942.png') # 3, 3 hotdog
     imgG = imgG[:,:,0:3]
     _imgG = tensorify(imgG)
 
-    dir_path = r'C:/github/DSNeRF/compareSSIM/hotdog_Basic'
+    dir_path = r'C:/github/DSNeRF/compareSSIM/No_Embedding'
     imgs = []
     for path in os.listdir(dir_path):
     # check if current path is a file
         if os.path.isfile(os.path.join(dir_path, path)):
-            imgs.append('compareSSIM/hotdog_Basic/'+path)
+            imgs.append('compareSSIM/No_Embedding/'+path)
     
     print("Read in imgs, starting caluclation")
 

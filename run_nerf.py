@@ -241,7 +241,7 @@ def create_nerf(args):
         B = np.random.normal(size=(mappingSize, 3))
         B = torch.from_numpy(B).float().to(device)
         # M: scale gauss mapping?
-        B *= 2.5
+        B *= 2.
 
     useIdentity = args.use_SIREN or args.use_SINONE
 
