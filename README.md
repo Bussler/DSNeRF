@@ -11,7 +11,7 @@ The files SSIMGenerator.py (calculate SSIM metric), SirenDsnerf.py (Implement SI
 
 Positional Encoding        |  Gauss Mapping            | SINONE                    |  SIREN         |
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|
-<img src="resources/Horns_Basic.mp4"  width="100" />  |  <img src="resources/Horns_Gauss.mp4"  width="100" /> | <img src="resources/Horns_SINONE.mp4"  width="100" /> | <img src="resources/Horns_SIREN.mp4"  width="100" />
+<img src="resources/Horns_Basic.gif"  width="100" />  |  <img src="resources/Horns_Gauss.gif"  width="100" /> | <img src="resources/Horns_SINONE.gif"  width="100" /> | <img src="resources/Horns_SIREN.gif"  width="100" />
 
 
 ## Quick Start
