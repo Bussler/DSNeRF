@@ -1,6 +1,6 @@
 # Investigating realtime capabilities of DSNeRF
 
-[**Project**](https://bussler.github.io/wordpress/dsnerf/) | [**Paper**](https://bussler.github.io/wp-content/uploads/2022/08/3D_Machine_Learning_DSNERF_Project_Final_Report.pdf)
+[**Project**](https://bussler.github.io/#/dsnerf) | [**Paper**](https://bussler.github.io/wp-content/uploads/2022/08/3D_Machine_Learning_DSNERF_Project_Final_Report.pdf)
 
 Depth-supervised NeRF (DSNeRF) is a state of the art deep neural network method for implicit 3D scenes representation from multi-view inputs.
 This project analyses the impact of different Fourier Feature mappings ([Original Positional Encoding](https://github.com/dunbar12138/DSNeRF), [Gauss Mapping](https://github.com/tancik/fourier-feature-networks)) and the [SIREN](https://github.com/vsitzmann/siren) and [SINONE](https://github.com/alextrevithick/Periodic-Activations) networks on the rendering quality of DSNeRF.
