@@ -2,19 +2,18 @@
 
 [**Project**](https://bussler.github.io/#/dsnerf) | [**Paper**](https://bussler.github.io/wp-content/uploads/2022/08/3D_Machine_Learning_DSNERF_Project_Final_Report.pdf)
 
-## Executive Summary
+## Summary
 
-This research investigates and enhances Depth-supervised Neural Radiance Fields (DSNeRF) through systematic analysis of neural network architectures and feature encoding strategies. Our work addresses key limitations in neural 3D scene representation quality and rendering speed, providing both theoretical insights and practical improvements for real-time applications.
+This research investigates and enhances Depth-supervised Neural Radiance Fields (DSNeRF) through systematic analysis of neural network architectures and feature encoding strategies.  
+Our work addresses key limitations in neural 3D scene representation quality and rendering speed, providing both theoretical insights and practical improvements for real-time applications.
 
-### Core Research Contributions
+### Core Research Tasks
 
-1. **Comparative Analysis of Feature Encodings**: We conduct the first comprehensive evaluation of Fourier feature mappings in DSNeRF, comparing original positional encoding with Gaussian random feature mappings and demonstrating significant quality improvements.
+1. **Comparative Analysis of Feature Encodings**: We conduct an evaluation of Fourier feature mappings in DSNeRF, comparing original positional encoding with Gaussian random feature mappings and demonstrating significant quality improvements.
 
-2. **Periodic Activation Function Investigation**: We systematically analyze SIREN and SINONE periodic activation functions within the DSNeRF framework, revealing training stability challenges and providing insights for future architectural improvements.
+2. **Periodic Activation Function Investigation**: We analyze SIREN and SINONE periodic activation functions within the DSNeRF framework, revealing training stability challenges and providing insights for future architectural improvements.
 
 3. **Real-time Rendering Achievement**: We implement and validate a FastNeRF-inspired caching technique that enables interactive DSNeRF rendering at 30 FPS, making neural radiance fields practical for real-time applications.
-
-4. **Quantitative Evaluation Framework**: We develop comprehensive evaluation metrics including SSIM calculations to provide rigorous quantitative assessment of rendering quality across different architectural choices.
 
 ### Key Findings
 
@@ -23,7 +22,6 @@ This research investigates and enhances Depth-supervised Neural Radiance Fields 
 - **Interactive Rendering** is achievable through strategic network splitting and 3D caching, reducing computational complexity from 5D to 3D+2D inputs
 - **Multi-view Consistency** is substantially improved with optimized feature encodings, particularly evident in complex geometric structures
 
-This work advances the state-of-the-art in neural rendering by providing both practical improvements and theoretical insights that inform future research directions in neural implicit representations.
 
 ### Technical Implementation
 
@@ -42,7 +40,7 @@ Our systematic evaluation reveals significant differences in rendering quality a
 | Method | Rendering Quality | Key Characteristics |
 |:-------|:------------------|:-------------------|
 | **Positional Encoding** (Baseline) | <img src="resources/Horns_Basic.gif" width="250" /> | Standard NeRF encoding with visible artifacts and geometric inconsistencies |
-| **Gaussian Mapping** (Our Enhancement) | <img src="resources/Horns_Gauss.gif" width="250" /> | **Superior performance**: Smoother surfaces, reduced noise, better geometric preservation |
+| **Gaussian Mapping** (Enhancement) | <img src="resources/Horns_Gauss.gif" width="250" /> | **Superior performance**: Smoother surfaces, reduced noise, better geometric preservation |
 | **SINONE** (Periodic Activation) | <img src="resources/Horns_SINONE.gif" width="250" /> | Training instability leads to poor scene reconstruction and visual artifacts |
 | **SIREN** (Periodic Activation) | <img src="resources/Horns_SIREN.gif" width="250" /> | Similar instability issues, unable to capture fine geometric details |
 
@@ -58,19 +56,18 @@ To ensure generalizability, we validate our findings across diverse scene types:
 ### Key Research Findings
 
 #### 1. Gaussian Feature Mapping Superiority
-- **40% reduction in visual artifacts** compared to positional encoding
+- **Reduction in visual artifacts** compared to positional encoding
 - **Enhanced geometric consistency** across viewing angles  
 - **Improved surface smoothness** particularly evident in curved structures
 - **Better preservation of fine details** while maintaining overall scene coherence
 
 #### 2. Periodic Activation Function Limitations
 - **Training Instability**: Both SIREN and SINONE exhibit convergence difficulties in the DSNeRF framework
-- **Scene Reconstruction Failure**: Unable to capture complex 3D scene geometry effectively
-- **Limited Practical Applicability**: Current periodic activation approaches require substantial architectural modifications for stability
+- Current periodic activation approaches require substantial architectural modifications for stability
 
-#### 3. Real-time Rendering Breakthrough
+#### 3. Real-time Rendering
 Our **FastNeRF implementation** achieves significant performance gains:
-- **Interactive rendering at 30 FPS** through strategic network decomposition
+- **Interactive rendering at 30 FPS** through network decomposition
 - **Dimensional reduction**: 5D input problem transformed to 3D + 2D components
 - **Intelligent caching strategy**: Pre-computed 3D features enable real-time volume rendering
 - **Maintained quality**: Minimal quality degradation while achieving 10x speed improvement
@@ -85,12 +82,6 @@ Our **FastNeRF implementation** achieves significant performance gains:
 | SIREN | 2 FPS | 0.61 | ❌ Unstable | Poor |
 | **FastNeRF (Cached)** | **30 FPS** | **0.89** | ✅ **Stable** | **Very Good** |
 
-### Impact and Applications
-
-These results demonstrate practical pathways for:
-- **High-quality neural rendering** through improved feature encodings
-- **Real-time applications** in gaming, AR/VR, and interactive media
-- **Research insights** informing future neural implicit representation architectures
 
 
 ## Quick Start
